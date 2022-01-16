@@ -13,6 +13,11 @@ Examples can be found in the folder examples.
 
 ```julia
 
+using LinearAlgebra
+using Combinatorics
+using JuMP, MosekTools
+using SpecialFunctions
+
 dim = 3; numMode = 3; dimIn = 2
 
 #A model is needed to generate data.
