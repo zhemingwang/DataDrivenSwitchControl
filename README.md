@@ -18,6 +18,13 @@ using Combinatorics
 using JuMP, MosekTools
 using SpecialFunctions
 
+include("../src/RandomTrajectories.jl")
+include("../src/AlgebraicLift.jl")
+include("../src/ScenarioOpti.jl")
+include("../src/ProbabilisticCertificates.jl")
+include("../src/WhiteBoxAnalysis.jl")
+
+
 dim = 3; numMode = 3; dimIn = 2
 
 #A model is needed to generate data.
