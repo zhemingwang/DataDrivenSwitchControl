@@ -7,6 +7,9 @@ This package implements quadratic and SOS methods for controlling switched linea
 * Combinatorics
 * MosekTools
 * SpecialFunctions
+* JuMP
+* Ipopt
+
 
 ## Examples
 Examples can be found in the folder examples.
@@ -15,7 +18,7 @@ Examples can be found in the folder examples.
 
 using LinearAlgebra
 using Combinatorics
-using JuMP, MosekTools
+using JuMP, MosekTools, Ipopt
 using SpecialFunctions
 
 include("../src/RandomTrajectories.jl")
