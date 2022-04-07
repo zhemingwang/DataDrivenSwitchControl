@@ -24,7 +24,7 @@ jsrboundopen= white_box_jsr(A)
 println("JSR open loop: $jsrboundopen")
 gaWB,KWB = white_box_stabilization_quad(A,B)
 println("White-box stabilization: $gaWB")
-jsrboundcloseWB = white_box_jsr([Ai+B*KTrue for Ai in A])
+jsrboundcloseWB = white_box_jsr([Ai+B*KWB for Ai in A])
 println("White-box jsr: $jsrboundcloseWB")
 
 

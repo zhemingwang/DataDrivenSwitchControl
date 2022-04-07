@@ -19,7 +19,7 @@ include("../src/WhiteBoxAnalysis.jl")
 
 dim = 3; numMode = 4; dimIn = 3
 
-numScen_budget = 10000
+numScen_budget = 30000
 
 c = 1375
 R12 = 1.5
@@ -47,7 +47,9 @@ println("K white-box: $Kw")
 
 K0 = zeros(dimIn,dim)
 
+#=
 K,xi,P,ratio = probabilistc_LQR_certificate(state0_budget[:,1:N],state_budget[:,1:N];B=B,numMode=numMode,Q=Q,R=R,kappaU=1e2,K0=K0,beta=0.01,tol=1e-4)
+
 
 state = [15;10;12]
 X = zeros(dim,10)
@@ -67,8 +69,11 @@ fn = plot(0:3:9*3, Any[X[1,:],X[2,:],X[3,:]],label = ["Zone 1" "Zone 2" "Zone 3"
 xlabel!("Time (minute)")
 ylabel!("Temperature (°C) ")
 
-#=
-for N in 500:500:numScen_budget
+=#
+xisq = []
+ratiosq = []
+
+for N in 1000:1000:numScen_budget
     K,xi,P,ratio = probabilistc_LQR_certificate(state0_budget[:,1:N],state_budget[:,1:N];B=B,numMode=numMode,Q=Q,R=R,kappaU=1e2,K0=K0,beta=0.01,tol=1e-4)
     push!(xisq,xi)
     push!(ratiosq,ratio)
@@ -78,7 +83,7 @@ for N in 500:500:numScen_budget
     println("K white-box: $Kw")
     println("P: $P")
     println("P white-box: $Pw")
-end=#
+end
 
 #=
 using Plots

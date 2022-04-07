@@ -81,7 +81,7 @@ if gaTrue > 1
 
         ratiotemp = ga2/ga1
 
-        if ratiotemp < ratio && jsrboundclose2 < jsrboundclose1 && jsrboundclose1 < 1.5*jsrboundclosed
+        if ratiotemp < ratio && jsrboundclose2 < jsrboundclose1 && jsrboundclose1 < 1.5*jsrboundclosed && jsrboundclose2 < 0.95*jsrboundclosed
             global Asave = A 
             global Bsave = B
             global ratio = ratiotemp
