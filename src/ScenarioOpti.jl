@@ -220,7 +220,7 @@ function soslyap_alternating_P(state0,state,B,d,K,ga0,Xscale)
     if d >= 2
         ga,P =  data_driven_lyapb_quad(statelift0,statelift;C=1e2,ub=ga0^d,postprocess=true)
     else
-        ga,P =  data_driven_lyapb_quad(statelift0,statelift;C=1e3,ub=ga0^d,postprocess=true)
+        ga,P =  data_driven_lyapb_quad(statelift0,statelift;C=1e2,ub=ga0^d,postprocess=true)
     end
 
     return P,ga^(1/d)
@@ -436,7 +436,7 @@ function LQR_alternating_K(state0,state;B,Q,R,kappaU,lowbound,Ptemp,Ktemp,xitemp
     @variable(model, K[1:m, 1:n])
     @variable(model, xitemp^2>=xi>=lowbound^2)
     #@variable(model, v>=0)
-    @objective(model, Min, xi^2+10*(xi-xitemp)^2)
+    @objective(model, Min, xi+10*(xi-xitemp^2)^2)
     for i in 1:numTraj
         @SDconstraint(model,[state0[:,i]'*(Ptemp-Q)*state0[:,i] (state[:,i]+B*K*state0[:,i])'*Ptemp state0[:,i]'*K';Ptemp*(state[:,i]+B*K*state0[:,i]) xi*Ptemp zeros(n,m);K*state0[:,i] zeros(m,n) inv(R)]>=0)
     end
