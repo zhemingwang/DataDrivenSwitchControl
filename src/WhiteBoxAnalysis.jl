@@ -64,10 +64,10 @@ function white_box_stabilization_quad(A,B,tol=1e-4)
         model = Model(solver)
         @variable(model, Q[1:dim, 1:dim] in PSDCone())
         @variable(model, Y[1:dimIn,1:dim])
-        @SDconstraint(model, Q >= Matrix(I,dim,dim))
+        @constraint(model, Q >= Matrix(I,dim,dim),PSDCone())
         @objective(model, Max, 0)
         for Ai in A
-            @SDconstraint(model, [gamma^2*Q Q*Ai'+(B*Y)';Ai*Q+B*Y Q] >= 0)
+            @constraint(model, [gamma^2*Q Q*Ai'+(B*Y)';Ai*Q+B*Y Q] >= 0,PSDCone())
         end
         JuMP.optimize!(model)
         if termination_status(model) == MOI.OPTIMAL
@@ -90,11 +90,11 @@ function white_box_LQR(A,B,Q,R)
     @variable(model, S[1:dim, 1:dim] in PSDCone())
     @variable(model, Y[1:dimIn,1:dim])
     @variable(model, t)
-    @SDconstraint(model, S >= 0)
+    @constraint(model, S >= 0,PSDCone())
     @constraint(model, [t; 1; lower_triangular(S)] in MOI.LogDetConeTriangle(dim))
     @objective(model, Max, t)
     for Ai in A
-        @SDconstraint(model, [S S*Ai'+(B*Y)' S Y';Ai*S+B*Y S zeros(dim,dim) zeros(dim,dimIn);S zeros(dim,dim) inv(Q) zeros(dim,dimIn);Y zeros(dimIn,dim) zeros(dimIn,dim) inv(R)] >= 0)
+        @constraint(model, [S S*Ai'+(B*Y)' S Y';Ai*S+B*Y S zeros(dim,dim) zeros(dim,dimIn);S zeros(dim,dim) inv(Q) zeros(dim,dimIn);Y zeros(dimIn,dim) zeros(dimIn,dim) inv(R)] >= 0,PSDCone())
     end
     JuMP.optimize!(model)
     if termination_status(model) == MOI.OPTIMAL

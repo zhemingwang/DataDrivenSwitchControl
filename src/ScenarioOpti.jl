@@ -11,12 +11,12 @@ function data_driven_lyapb_quad(state0,state;horizon=1,C=1e3,ub=1e2,lb=0,tol=1e-
         solver = optimizer_with_attributes(Mosek.Optimizer, MOI.Silent() => true)
         model = Model(solver)
         @variable(model, P[1:dim, 1:dim] in PSDCone())
-        @SDconstraint(model, P >= Matrix(I,dim,dim))
+        @constraint(model, P >= Matrix(I,dim,dim),PSDCone())
         @objective(model, Max, 0)
         for i in 1:numTraj
           @constraint(model, state[:,i]'*P*state[:,i] <= gamma^(2*horizon)*state0[:,i]'*P*state0[:,i])
         end
-        @SDconstraint(model, P <= C*Matrix(I,dim,dim))
+        @constraint(model, P <= C*Matrix(I,dim,dim),PSDCone())
         JuMP.optimize!(model)
         if termination_status(model) == MOI.OPTIMAL
           gammaU=gamma
@@ -51,14 +51,14 @@ function data_driven_lyapb_quad(state0,state;horizon=1,C=1e3,ub=1e2,lb=0,tol=1e-
         solver = optimizer_with_attributes(Mosek.Optimizer, MOI.Silent() => true)
         model = Model(solver)
         @variable(model, P[1:dim, 1:dim] in PSDCone())
-        @SDconstraint(model, P >= Matrix(I,dim,dim))
+        @constraint(model, P >= Matrix(I,dim,dim),PSDCone())
         # @variable(model,t >= 0)
         # @constraint(model,t >= norm(P, 2))
         @objective(model, Min, sum(P[:].^2))
         for i in 1:numTraj
           @constraint(model, state[:,i]'*P*state[:,i] <= gamma^(2*horizon)*state0[:,i]'*P*state0[:,i])
         end
-        @SDconstraint(model, P <= C*Matrix(I,dim,dim))
+        @constraint(model, P <= C*Matrix(I,dim,dim),PSDCone())
         JuMP.optimize!(model)
         return gamma, value.(P)
     else
@@ -127,7 +127,7 @@ function soslyap_alternating_K(state0,state,B,d,P,cholP,K0,ga0,Xscale)
         @variable(model, ga >=0)
         @objective(model, Min, ga)
         for i in 1:N
-            @SDconstraint(model, [ga*V0[i] (state[:,i]+B*K*state0[:,i])'*P;P*(state[:,i]+B*K*state0[:,i]) P] >=0)
+            @constraint(model, [ga*V0[i] (state[:,i]+B*K*state0[:,i])'*P;P*(state[:,i]+B*K*state0[:,i]) P] >=0,PSDCone())
         end
         JuMP.optimize!(model) 
         return reshape(JuMP.value.(K),m,n),(sqrt(JuMP.value.(ga)))^(1/d)
@@ -142,6 +142,7 @@ function soslyap_alternating_K(state0,state,B,d,P,cholP,K0,ga0,Xscale)
         @variable(model, 0 <= ga <= ga0^(2*d),start = ga0^(2*d))
         @objective(model, Min, ga)
         
+        #=
         lyapconstraint = []
         for i in 1:N
             push!(lyapconstraint,(y,x...) -> sum(sum(cholP.U[j,k]*veroneselift(state[:,i]+B*reshape(collect(x),m,n)*state0[:,i],Xscale,d)[k] for k in 1:nlift)^2 for j in 1:nlift)-y*V0[i])
@@ -149,8 +150,13 @@ function soslyap_alternating_K(state0,state,B,d,P,cholP,K0,ga0,Xscale)
         for (i, f) in enumerate(lyapconstraint)
             f_sym = Symbol("f_$(i)")
             register(model, f_sym, n*m+1, f; autodiff = true)
-            add_NL_constraint(model, :($(f_sym)($(ga),$(K...)) <= 0))
+            @NLconstraint(model, :($(f_sym)($(ga),$(K...)) <= 0))
         end
+        =#
+        for i in 1:N
+            @NLconstraint(model, sum(sum(cholP.U[j,k]*veroneselift(state[:,i]+B*reshape(collect(K),m,n)*state0[:,i],Xscale,d)[k] for k in 1:nlift)^2 for j in 1:nlift)-ga*V0[i]<=0)
+        end
+
         JuMP.optimize!(model) 
         return reshape(JuMP.value.(K),m,n),(sqrt(JuMP.value.(ga)))^(1/d)
 
@@ -370,9 +376,9 @@ function LQR_alternating_xi(state0,state;B,Q,R,kappaU,Ktemp,xitemp,tol=1e-4)
         for i in 1:numTraj
           @constraint(model, stateK[:,i]'*P*stateK[:,i] <= xi^2*state0[:,i]'*(P-Q-Ktemp'*R*Ktemp)*state0[:,i])
         end
-        @SDconstraint(model, P >= Q+Ktemp'*R*Ktemp)
-        @SDconstraint(model, P >= Q+Ktemp'*R*Ktemp+v*Matrix(I,dim,dim))
-        @SDconstraint(model, P - Q - Ktemp'*R*Ktemp <=kappaU*v*Matrix(I,dim,dim))
+        @constraint(model, P >= Q+Ktemp'*R*Ktemp,PSDCone())
+        @constraint(model, P >= Q+Ktemp'*R*Ktemp+v*Matrix(I,dim,dim),PSDCone())
+        @constraint(model, P - Q - Ktemp'*R*Ktemp <=kappaU*v*Matrix(I,dim,dim),PSDCone())
 
         JuMP.optimize!(model)
         if termination_status(model) == MOI.OPTIMAL
@@ -392,9 +398,9 @@ function LQR_alternating_xi(state0,state;B,Q,R,kappaU,Ktemp,xitemp,tol=1e-4)
     for i in 1:numTraj
       @constraint(model, stateK[:,i]'*P*stateK[:,i] <= ub^2*state0[:,i]'*(P-Q-Ktemp'*R*Ktemp)*state0[:,i])
     end
-    @SDconstraint(model, P >= Q+Ktemp'*R*Ktemp)
-    @SDconstraint(model, P >= Q+Ktemp'*R*Ktemp+v*Matrix(I,dim,dim))
-    @SDconstraint(model, P - Q - Ktemp'*R*Ktemp <=kappaU*v*Matrix(I,dim,dim))
+    @constraint(model, P >= Q+Ktemp'*R*Ktemp,PSDCone())
+    @constraint(model, P >= Q+Ktemp'*R*Ktemp+v*Matrix(I,dim,dim),PSDCone())
+    @constraint(model, P - Q - Ktemp'*R*Ktemp <=kappaU*v*Matrix(I,dim,dim),PSDCone())
     JuMP.optimize!(model)
 
     return value.(P), ub
@@ -438,9 +444,9 @@ function LQR_alternating_K(state0,state;B,Q,R,kappaU,lowbound,Ptemp,Ktemp,xitemp
     #@variable(model, v>=0)
     @objective(model, Min, xi+10*(xi-xitemp^2)^2)
     for i in 1:numTraj
-        @SDconstraint(model,[state0[:,i]'*(Ptemp-Q)*state0[:,i] (state[:,i]+B*K*state0[:,i])'*Ptemp state0[:,i]'*K';Ptemp*(state[:,i]+B*K*state0[:,i]) xi*Ptemp zeros(n,m);K*state0[:,i] zeros(m,n) inv(R)]>=0)
+        @constraint(model,[state0[:,i]'*(Ptemp-Q)*state0[:,i] (state[:,i]+B*K*state0[:,i])'*Ptemp state0[:,i]'*K';Ptemp*(state[:,i]+B*K*state0[:,i]) xi*Ptemp zeros(n,m);K*state0[:,i] zeros(m,n) inv(R)]>=0,PSDCone())
     end
-    @SDconstraint(model, [Ptemp-Q K';K inv(R)]>=0)
+    @constraint(model, [Ptemp-Q K';K inv(R)]>=0,PSDCone())
     #@SDconstraint(model, [v*Matrix(I,m,m) K';K inv(R)]>=0)
     JuMP.optimize!(model)
 
@@ -482,9 +488,9 @@ function LQR_alternating_P(state0,state;B,Q,R,kappaU,Ktemp,xitemp)
     #(model, s>=0)
     @objective(model, Min, tr(P))
     #@SDconstraint(model, P <= s*Matrix(I,n,n))
-    @SDconstraint(model, P >= Q+Ktemp'*R*Ktemp)
-    @SDconstraint(model, P >= Q+Ktemp'*R*Ktemp+v*Matrix(I,n,n))
-    @SDconstraint(model, P - Q -Ktemp'*R*Ktemp <=kappaU*v*Matrix(I,n,n))
+    @constraint(model, P >= Q+Ktemp'*R*Ktemp,PSDCone())
+    @constraint(model, P >= Q+Ktemp'*R*Ktemp+v*Matrix(I,n,n),PSDCone())
+    @constraint(model, P - Q -Ktemp'*R*Ktemp <=kappaU*v*Matrix(I,n,n),PSDCone())
     for i in 1:numTraj
         @constraint(model, stateK[:,i]'*P*stateK[:,i] <= xitemp^2*state0[:,i]'*(P-Q-Ktemp'*R*Ktemp)*state0[:,i])
     end
